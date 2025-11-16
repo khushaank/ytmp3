@@ -6,8 +6,6 @@ A simple, self-hosted web application to download YouTube playlists or single vi
 
 ***
 
-![YT Music Downloader Screenshot](https.i.imgur.com/your-screenshot-url.png)
-
 ## Features
 
 * **Download Playlists or Single Videos:** Just paste a URL.
