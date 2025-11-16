@@ -14,15 +14,11 @@ import sys
 def get_resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     else:
-        # Not bundled, just running as a .py script
         base_path = os.path.dirname(os.path.abspath(__file__))
-    
     return os.path.join(base_path, relative_path)
 
-# This path will now correctly point to ffmpeg.exe even when bundled
 FFMPEG_PATH = get_resource_path('ffmpeg.exe')
 STATIC_DIR = get_resource_path('static')
 
@@ -205,6 +201,7 @@ HTML_TEMPLATE = """
         let fetchedSongs = [];
         let playlistTitle = "";
         let selectedFormat = "mp3";
+        let isPlaylist = false; // ### MODIFICATION ###: Added to track if it's a playlist
 
         function setDownloadUIState(downloading) {
             downloadSelectedBtn.disabled = downloading;
@@ -271,10 +268,20 @@ HTML_TEMPLATE = """
                     playlistTitle = data.playlist_title;
                     playlistTitleEl.textContent = playlistTitle;
                     fetchedSongs = data.songs;
-                    // ### MODIFICATION ###: This line is now fixed
+                    isPlaylist = data.is_playlist; // ### MODIFICATION ###: Store if it's a playlist
+                    
+                    // ### MODIFICATION ###: Show/hide 'Select All' if it's a single video
+                    selectAllBtn.style.display = isPlaylist ? 'block' : 'none';
+                    if (!isPlaylist) {
+                        // For single video, tweak button text
+                        downloadSelectedBtn.innerHTML = 'Download Selected (<span id="selectedCount">0</span>)';
+                    }
+                    
                     totalItemsSpan.textContent = fetchedSongs.length;
                     renderSongList(fetchedSongs);
-                    if (fetchedSongs.length === 1) {
+                    
+                    // ### MODIFICATION ###: Always select all songs if it's a single video
+                    if (!isPlaylist) {
                         document.getElementById(`song-${fetchedSongs[0].id}`).checked = true;
                         updateSelectedCount();
                     }
@@ -340,7 +347,13 @@ HTML_TEMPLATE = """
                 const response = await fetch('/download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ songs: selectedSongs, playlist_title: playlistTitle, format: selectedFormat }),
+                    // ### MODIFICATION ###: Send is_playlist flag to backend
+                    body: JSON.stringify({ 
+                        songs: selectedSongs, 
+                        playlist_title: playlistTitle, 
+                        format: selectedFormat,
+                        is_playlist: isPlaylist 
+                    }),
                 });
 
                 if (response.ok) {
@@ -366,12 +379,15 @@ HTML_TEMPLATE = """
                 const songItem = document.createElement('div');
                 songItem.className = 'p-3 bg-slate-50 dark:bg-slate-700 rounded-lg flex items-center shadow-sm space-x-4 transition-all duration-300 hover:shadow-md';
                 
+                // ### MODIFICATION ###: Use high-quality thumbnail
                 const videoId = item.id;
                 const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
                 const placeholderUrl = 'https://placehold.co/48x48/e2e8f0/64748b?text=YT';
                 const thumbnail = `<img src="${thumbnailUrl}" class="w-12 h-12 rounded-lg object-cover" alt="Thumbnail" onerror="this.onerror=null; this.src='${placeholderUrl}';">`;
 
-                const uploader = item.uploader || 'Unknown Channel';
+                // ### MODIFICATION ###: Show Artist and Album, which are now available
+                const artist = item.artist || 'Unknown Artist';
+                const album = item.album || 'Unknown Album';
                 
                 songItem.innerHTML = `
                     <input type="checkbox" id="song-${item.id}" class="h-5 w-5 rounded-md text-indigo-600 focus:ring-indigo-500">
@@ -379,7 +395,7 @@ HTML_TEMPLATE = """
                     ${thumbnail}
                     <div class="flex-1 min-w-0">
                         <div class="font-medium text-slate-700 dark:text-slate-200 truncate">${item.title}</div>
-                        <div class="text-sm text-slate-500 dark:text-slate-400 truncate">${uploader}</div>
+                        <div class="text-sm text-slate-500 dark:text-slate-400 truncate">${artist} • ${album}</div>
                     </div>
                 `;
                 progressList.appendChild(songItem);
@@ -461,7 +477,10 @@ HTML_TEMPLATE = """
                 const thumbnail = `<img src="${thumbnailUrl}" class="w-12 h-12 rounded-lg mr-4 object-cover" alt="Thumbnail" onerror="this.onerror=null; this.src='${placeholderUrl}';">`;
                 
                 const title = item.title;
-                const uploader = item.uploader || 'Unknown Channel';
+                // ### MODIFICATION ###: Show Artist and Album, which are now available
+                const artist = item.artist || 'Unknown Artist';
+                const album = item.album || 'Unknown Album';
+                
                 const progress = item.progress || 0;
                 const status = item.status;
                 const order = item.order + 1;
@@ -472,17 +491,16 @@ HTML_TEMPLATE = """
                 
                 if (status === 'finished') {
                     bgColor = 'bg-green-50 dark:bg-green-900';
-                    contentHTML = `<div class="flex items-center min-w-0"><span class="text-sm font-semibold text-slate-400 dark:text-slate-500 mr-2 w-6 text-right">${order}.</span>${thumbnail}<div class="flex-1 ml-4 min-w-0"><div class="text-sm font-medium text-green-700 dark:text-green-300 truncate">${title}</div><div class="text-sm text-green-600 dark:text-green-400 truncate">${uploader}</div></div></div><span class="text-sm font-bold text-green-700 dark:text-green-300 ml-4 flex-shrink-0">Finished</span>`;
+                    contentHTML = `<div class="flex items-center min-w-0"><span class="text-sm font-semibold text-slate-400 dark:text-slate-500 mr-2 w-6 text-right">${order}.</span>${thumbnail}<div class="flex-1 ml-4 min-w-0"><div class="text-sm font-medium text-green-700 dark:text-green-300 truncate">${title}</div><div class="text-sm text-green-600 dark:text-green-400 truncate">${artist} • ${album}</div></div></div><span class="text-sm font-bold text-green-700 dark:text-green-300 ml-4 flex-shrink-0">Finished</span>`;
                 } else if (status === 'error') {
                     bgColor = 'bg-red-50 dark:bg-red-900';
-                    contentHTML = `<div class="flex items-center min-w-0"><span class="text-sm font-semibold text-slate-400 dark:text-slate-500 mr-2 w-6 text-right">${order}.</span>${thumbnail}<div class="flex-1 ml-4 min-w-0"><div class="text-sm font-medium text-red-700 dark:text-red-300 truncate">${title}</div><div class="text-sm text-red-600 dark:text-red-400 truncate">${uploader}</div></div></div><span class="text-sm font-bold text-red-700 dark:text-red-300 ml-4 flex-shrink-0">Failed</span>`;
+                    contentHTML = `<div class="flex items-center min-w-0"><span class="text-sm font-semibold text-slate-400 dark:text-slate-500 mr-2 w-6 text-right">${order}.</span>${thumbnail}<div class="flex-1 ml-4 min-w-0"><div class="text-sm font-medium text-red-700 dark:text-red-300 truncate">${title}</div><div class="text-sm text-red-600 dark:text-red-400 truncate">${artist} • ${album}</div></div></div><span class="text-sm font-bold text-red-700 dark:text-red-300 ml-4 flex-shrink-0">Failed</span>`;
                 } else if (status === 'downloading') {
                     bgColor = 'bg-blue-50 dark:bg-blue-900';
-                    // ### MODIFICATION ###: This typo is also fixed
-                    contentHTML = `<div class="flex items-center w-full"><span class="text-sm font-semibold text-slate-400 dark:text-slate-500 mr-2 w-6 text-right">${order}.</span>${thumbnail}<div class="flex-1 ml-4 min-w-0"><div class="text-sm font-medium text-blue-700 dark:text-blue-300 truncate">${title}</div><div class="text-sm text-blue-600 dark:text-blue-400 truncate">${uploader}</div><div class="w-full h-2 bg-blue-200 dark:bg-blue-700 rounded-full mt-1"><div class="h-2 bg-blue-600 rounded-full transition-all duration-300 ease-out" style="width: ${progress}%"></div></div></div></div>`;
+                    contentHTML = `<div class="flex items-center w-full"><span class="text-sm font-semibold text-slate-400 dark:text-slate-500 mr-2 w-6 text-right">${order}.</span>${thumbnail}<div class="flex-1 ml-4 min-w-0"><div class="text-sm font-medium text-blue-700 dark:text-blue-300 truncate">${title}</div><div class="text-sm text-blue-600 dark:text-blue-400 truncate">${artist} • ${album}</div><div class="w-full h-2 bg-blue-200 dark:bg-blue-700 rounded-full mt-1"><div class="h-2 bg-blue-600 rounded-full transition-all duration-300 ease-out" style="width: ${progress}%"></div></div></div></div>`;
                 } else { // pending
                     bgColor = 'bg-slate-50 dark:bg-slate-700';
-                    contentHTML = `<div class="flex items-center min-w-0"><span class="text-sm font-semibold text-slate-400 dark:text-slate-500 mr-2 w-6 text-right">${order}.</span>${thumbnail}<div class="flex-1 ml-4 min-w-0"><div class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">${title}</div><div class="text-sm text-slate-500 dark:text-slate-400 truncate">${uploader}</div></div></div><span class="text-sm font-bold text-slate-700 dark:text-slate-200 ml-4 flex-shrink-0">Pending</span>`;
+                    contentHTML = `<div class="flex items-center min-w-0"><span class="text-sm font-semibold text-slate-400 dark:text-slate-500 mr-2 w-6 text-right">${order}.</span>${thumbnail}<div class="flex-1 ml-4 min-w-0"><div class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">${title}</div><div class="text-sm text-slate-500 dark:text-slate-400 truncate">${artist} • ${album}</div></div></div><span class="text-sm font-bold text-slate-700 dark:text-slate-200 ml-4 flex-shrink-0">Pending</span>`;
                 }
                 
                 progressItem.classList.add(...bgColor.split(' '));
@@ -499,7 +517,8 @@ HTML_TEMPLATE = """
 def sanitize_filename(name):
     return re.sub(r'[\\/*?:"<>|]', "", name)
 
-def _download_single_song(song, playlist_folder, format_options, log_file_path):
+def _download_single_song(song, playlist_folder, format_options, log_file_path, is_playlist):
+    """Downloads a single song. Designed to be run in a thread pool."""
     global DOWNLOAD_STATUS
     video_id = song['id']
 
@@ -535,10 +554,18 @@ def _download_single_song(song, playlist_folder, format_options, log_file_path):
                         except Exception as e:
                             LOG_QUEUE.put(f"[ERROR] Could not write to log file: {e}")
 
-    output_template = os.path.join(
-        playlist_folder, 
-        f"{song['order'] + 1:02d} - %(artist, 'Unknown Artist')s - %(title)s.%(ext)s"
-    )
+    # ### MODIFICATION ###: Smart filename based on if it's a playlist or single song
+    if is_playlist:
+        output_template = os.path.join(
+            playlist_folder, 
+            f"{song['order'] + 1:02d} - %(artist, 'Unknown Artist')s - %(title)s.%(ext)s"
+        )
+    else:
+        # Single song: don't add the "01 - " number prefix
+        output_template = os.path.join(
+            playlist_folder, 
+            f"%(artist, 'Unknown Artist')s - %(title)s.%(ext)s"
+        )
 
     ydl_opts = {
         'outtmpl': output_template,
@@ -572,16 +599,28 @@ def _download_single_song(song, playlist_folder, format_options, log_file_path):
                     DOWNLOAD_STATUS['failed_items'] += 1
         LOG_QUEUE.put(f"Failed to download {song['title']}: {e}")
 
-def download_songs_task(songs, playlist_title, format_type):
+def download_songs_task(songs, playlist_title, format_type, is_playlist):
+    """
+    This function runs in a separate thread to handle the download of selected songs
+    using a thread pool for parallel downloads.
+    """
     global DOWNLOAD_STATUS
     
     try:
         music_dir = os.path.expanduser(r'~\Music')
         base_folder = os.path.join(music_dir, 'YTMusicDownloader')
-        playlist_folder = os.path.join(base_folder, sanitize_filename(playlist_title))
+        
+        # ### MODIFICATION ###: Smart folder logic
+        if is_playlist:
+            # It's a playlist, put it in its own subfolder
+            playlist_folder = os.path.join(base_folder, sanitize_filename(playlist_title))
+        else:
+            # It's a single song, save it directly to the root
+            playlist_folder = base_folder
         
         if not os.path.exists(playlist_folder):
             os.makedirs(playlist_folder)
+            
     except Exception as e:
         with status_lock:
             DOWNLOAD_STATUS['status'] = 'error'
@@ -609,7 +648,8 @@ def download_songs_task(songs, playlist_title, format_type):
 
     max_workers = 4
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(_download_single_song, song, playlist_folder, format_options, log_file_path) for song in songs]
+        # ### MODIFICATION ###: Pass is_playlist flag to the download function
+        futures = [executor.submit(_download_single_song, song, playlist_folder, format_options, log_file_path, is_playlist) for song in songs]
         concurrent.futures.wait(futures)
 
     with status_lock:
@@ -634,18 +674,23 @@ def fetch_playlist():
     if not playlist_url:
         return jsonify({"message": "Playlist or Video URL is required."}), 400
     try:
+        # ### MODIFICATION ###: Removed 'extract_flat: True' for reliability
         ydl_info_opts = {
             'quiet': True, 
-            'extract_flat': True,
-            'noplaylist': False,
+            'noplaylist': False, # Allow playlists
             'extractor_args': {"youtube": {"player_client": ["default"]}}
         }
         with yt_dlp.YoutubeDL(ydl_info_opts) as ydl:
             info = ydl.extract_info(playlist_url, download=False)
             if not info:
                 raise Exception("yt-dlp could not extract any info. The URL might be invalid, private, or geo-restricted.")
+            
             songs = []
+            is_playlist = False # ### MODIFICATION ###: Flag to track type
+            
             if 'entries' in info:
+                # It's a playlist
+                is_playlist = True
                 playlist_title = info.get('title', 'Unknown Playlist')
                 for index, entry in enumerate(info['entries']):
                     if entry and 'id' in entry and 'title' in entry:
@@ -653,19 +698,28 @@ def fetch_playlist():
                             'id': entry['id'],
                             'title': entry['title'],
                             'uploader': entry.get('uploader'),
+                            'artist': entry.get('artist', entry.get('uploader', 'Unknown Artist')),
+                            'album': entry.get('album', playlist_title),
                             'thumbnail': entry.get('thumbnail'),
                             'order': index
                         })
             else:
+                # It's a single video
+                is_playlist = False
                 playlist_title = info.get('title', 'Unknown Video')
                 songs.append({
                     'id': info['id'],
                     'title': info['title'],
                     'uploader': info.get('uploader'),
+                    'artist': info.get('artist', info.get('uploader', 'Unknown Artist')),
+                    'album': info.get('album', 'Unknown Album'),
                     'thumbnail': info.get('thumbnail'),
                     'order': 0
                 })
-        return jsonify({"playlist_title": playlist_title, "songs": songs}), 200
+        
+        # ### MODIFICATION ###: Return is_playlist flag to the frontend
+        return jsonify({"playlist_title": playlist_title, "songs": songs, "is_playlist": is_playlist}), 200
+    
     except Exception as e:
         LOG_QUEUE.put(f"[ERROR] Failed to fetch info: {str(e)}")
         return jsonify({"message": f"Failed to fetch info. (Details: {str(e)})"}), 500
@@ -677,25 +731,33 @@ def download_selected_songs():
     selected_songs = data.get("songs")
     playlist_title = data.get("playlist_title", "Unknown_Playlist")
     selected_format = data.get("format", "mp3")
+    is_playlist = data.get("is_playlist", False) # ### MODIFICATION ###: Get is_playlist flag
+    
     if not selected_songs:
         return jsonify({"message": "No songs were selected for download."}), 400
+    
     with status_lock:
         DOWNLOAD_STATUS = {
             'total_items': len(selected_songs),
             'downloaded_items': 0,
             'failed_items': 0,
             'status': 'downloading',
+            # ### MODIFICATION ###: Store artist and album in status
             'results': {song['id']: {
                 'id': song['id'], 
                 'title': song['title'],
                 'uploader': song.get('uploader'),
+                'artist': song.get('artist'),
+                'album': song.get('album'),
                 'status': 'pending',
                 'progress': 0.0,
                 'thumbnail': song.get('thumbnail'), 
                 'order': song['order']
             } for song in selected_songs}
         }
-    thread = threading.Thread(target=download_songs_task, args=(selected_songs, playlist_title, selected_format))
+    
+    # ### MODIFICATION ###: Pass is_playlist to the download thread
+    thread = threading.Thread(target=download_songs_task, args=(selected_songs, playlist_title, selected_format, is_playlist))
     thread.start()
     return jsonify({"message": "Download started successfully."}), 202
 
@@ -716,8 +778,6 @@ def get_logs():
 
 
 if __name__ == "__main__":
-    # --- All shortcut code has been removed ---
-    
     try:
         music_dir = os.path.expanduser(r'~\Music')
         base_folder = os.path.join(music_dir, 'YTMusicDownloader')
@@ -734,7 +794,6 @@ if __name__ == "__main__":
     print("Starting server at http://127.0.0.1:5000")
     
     def open_browser():
-        # Only open the browser if running as a bundled .exe
         if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
             threading.Timer(1.0, lambda: webbrowser.open_new_tab('http://127.0.0.1:5000')).start()
         
