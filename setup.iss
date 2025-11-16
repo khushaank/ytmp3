@@ -17,6 +17,7 @@ SetupIconFile=static\favicon.ico
 [Files]
 Source: "dist\ytmp3.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "ffmpeg.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "ffprobe.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\YT Music Downloader"; Filename: "{app}\ytmp3.exe"
