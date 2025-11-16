@@ -4,54 +4,45 @@
 
 A simple, self-hosted web application to download YouTube playlists or single videos as high-quality MP3 files, complete with metadata and album art.
 
----
+***
 
-## Screenshot
-
-(Add a screenshot of your app here — drag and drop an image into this README on GitHub)
-
-![YT Music Downloader Screenshot](https://i.imgur.com/your-screenshot-url.png)
-
----
+![YT Music Downloader Screenshot](https.i.imgur.com/your-screenshot-url.png)
 
 ## Features
 
-- **Download Playlists or Single Videos:** Paste any YouTube URL.
-- **High-Quality Audio:** Converts to 320kbps MP3 (MP4 video option also available).
-- **Automatic Metadata:** MP3 files include Title, Artist, and Album tags.
-- **Embedded Thumbnail Art:** The YouTube thumbnail becomes the cover image.
-- **Modern Web UI:** Clean, responsive interface that runs locally in your browser.
-- **Dark Mode:** Automatically adapts to your system theme.
-- **Real-time Progress:** Progress bars, live logs, and status updates.
-- **Organized Output:** Files saved under your user's `Music/YTMusicDownloader/[Playlist Name]`.
+* **Download Playlists or Single Videos:** Just paste a URL.
+* **High-Quality Audio:** Converts to 320kbps MP3 format (MP4 video also available).
+* **Automatic Metadata:** Embeds the correct **Title**, **Artist**, and **Album** tags into the MP3 file.
+* **Embeds Thumbnails:** Adds the video thumbnail as the cover/album art.
+* **Modern Web UI:** A clean interface that runs locally in your browser.
+* **Dark Mode:** Automatically adapts to your system's light or dark theme.
+* **Real-time Progress:** See download status, progress bars, and a full log modal.
+* **Organized Output:** Saves all files to your user's `Music` folder under `YTMusicDownloader/[Playlist Name]`.
 
----
+## Installation (for Users)
 
-## Installation (For Users)
+1.  Go to the [**Releases**](https://github.com/YOUR_USERNAME/YOUR_REPO/releases) page of this repository.
+2.  Download **both** files:
+    * `YTMusicDownloader_Setup.exe`
+    * `ffmpeg.exe`
+3.  Place **both files in the same folder** (e.g., your Desktop or Downloads folder).
+4.  Run `YTMusicDownloader_Setup.exe`. The installer will automatically find `ffmpeg.exe` and install it for you.
+5.  Launch **"YT Music Downloader"** from your Start Menu. It will automatically open the app in your browser at `http://127.0.0.1:5000`.
 
-1. Visit the **[Releases](https://github.com/YOUR_USERNAME/YOUR_REPO/releases)** page.
-2. Download the latest `YTMusicDownloader_Setup.exe`.
-3. Run the installer (includes all dependencies — even `ffmpeg`).
-4. Launch **YT Music Downloader** from the Start Menu.  
-   The app will open automatically at `http://127.0.0.1:5000`.
+## Building from Source (for Developers)
 
----
-
-## Building From Source (For Developers)
+If you want to build the application yourself, follow these steps.
 
 ### Prerequisites
 
-- [Python 3.10+](https://www.python.org/downloads/)
-- [FFmpeg](https://ffmpeg.org/download.html)  
-  Download the *essentials* build and place `ffmpeg.exe` in the project root (next to `ytmp3.py`).
-- [Inno Setup](https://jrsoftware.org/isinfo.php) — required for building the final installer.
+* [Python 3.10+](https://www.python.org/downloads/)
+* [FFmpeg](https://ffmpeg.org/download.html) (Download the "essentials" build and place `ffmpeg.exe` in the root of this project folder, next to `ytmp3.py`).
+* [Inno Setup](https://jrsoftware.org/isinfo.php) (To create the final installer).
 
----
-
-## 1. Clone the Repository
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git clone [https://github.com/YOUR_USERNAME/YOUR_REPO.git](https://github.com/YOUR_USERNAME/YOUR_REPO.git)
 cd YOUR_REPO
 ```
 
