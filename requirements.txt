@@ -1,0 +1,16 @@
+# Python libraries required to run and build the project
+
+# ----- Runtime Dependencies -----
+# For the web server
+flask
+waitress
+
+# For downloading
+yt-dlp
+
+# ----- Build-time Dependencies -----
+# For creating the .exe
+pyinstaller
+
+# For handling the .ico file during build
+Pillow
